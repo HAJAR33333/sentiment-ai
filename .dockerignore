@@ -1,0 +1,17 @@
+# Exclure le d é p ô t Git ( inutile dans l ’ image , tr è s volumineux )
+. git /
+. github /
+# Exclure les fichiers compil é s Python ( r é g é n é r é s automatiquement )
+__pycache__ /
+*. pyc
+*. pyo
+# Exclure les artefacts de tests et de couverture
+. pytest_cache /
+htmlcov /
+coverage . xml
+# Exclure les secrets et fichiers d ’ environnement locaux
+. env
+. env .*
+# Exclure les fichiers Terraform ( ajout é s en TP4 )
+*. tfstate
+. terraform /
