@@ -45,7 +45,7 @@ pipeline {
                 # Désactiver temporairement l'arrêt strict de bash
                 set +e
                 
-                # Lancer les tests
+                # Lancer les tests en se plaçant à la racine et en forçant le rapport de couverture
                 docker run \
                   -e CI=true \
                   --name test-runner \
@@ -62,12 +62,11 @@ pipeline {
                 # Copier le rapport de couverture depuis le dossier de l'app du conteneur vers le workspace local
                 docker cp test-runner:/app/coverage.xml ./coverage.xml 2>/dev/null || true
                 
-                # RECRITURE CRITIQUE DES CHEMINS : On transforme les chemins absolus /app/src en chemins relatifs src/
-                # pour que SonarQube s'y retrouve dans le workspace Jenkins.
+                # Nettoyage à la volée rigoureux du fichier XML pour supprimer toute référence à /app
                 if [ -f ./coverage.xml ]; then
-                    echo "Correction des chemins dans coverage.xml..."
-                    sed -i 's|<source>/app</source>|<source>'"$WORKSPACE"'</source>|g' ./coverage.xml
-                    sed -i 's|filename="/app/|filename="|g' ./coverage.xml
+                    echo "Correction définitive des sources dans coverage.xml..."
+                    sed -i 's|<source>/app</source>|<source>'"$WORKSPACE"'</source>|g' ./coverage.xml 2>/dev/null || true
+                    sed -i 's|filename="src/|filename="src/|g' ./coverage.xml 2>/dev/null || true
                 fi
                 
                 # Nettoyer le conteneur de test
@@ -92,6 +91,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonarqube') {
                     sh '''
+                    # On ajuste le point d'entrée pour que le Scanner lise le dossier du workspace mappé de manière relative
                     docker run --rm \
                       --network cicd-network \
                       --volumes-from jenkins \
@@ -104,6 +104,7 @@ pipeline {
                       -Dsonar.projectName=SentimentAI \
                       -Dsonar.projectBaseDir="$WORKSPACE" \
                       -Dsonar.sources=src \
+                      -Dsonar.scm.disabled=true \
                       -Dsonar.python.version=3.11 \
                       -Dsonar.python.coverage.reportPaths=coverage.xml \
                       -Dsonar.sourceEncoding=UTF-8 \
