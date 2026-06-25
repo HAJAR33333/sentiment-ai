@@ -45,22 +45,22 @@ pipeline {
                 # Désactiver temporairement l'arrêt strict de bash
                 set +e
                 
-                # Lancer les tests en nommant le conteneur pour copier coverage.xml
+                # Lancer les tests en forçant le chemin relatif dans le rapport de couverture
                 docker run \
                   -e CI=true \
                   --name test-runner \
                   ${IMAGE_NAME}:${IMAGE_TAG} \
                   pytest tests/ -v \
                   --cov=src \
-                  --cov-report=xml:/tmp/coverage.xml \
+                  --cov-report=xml:coverage.xml \
                   --cov-report=term-missing \
                   --cov-fail-under=70
                 
                 TEST_EXIT_CODE=$?
                 set -e
                 
-                # Copier coverage.xml depuis le conteneur vers le workspace
-                docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
+                # Copier le rapport de couverture depuis le dossier de l'app du conteneur vers le workspace local
+                docker cp test-runner:/app/coverage.xml ./coverage.xml 2>/dev/null || true
                 
                 # Nettoyer le conteneur de test
                 docker rm -f test-runner 2>/dev/null || true
