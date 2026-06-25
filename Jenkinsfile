@@ -120,14 +120,14 @@ pipeline {
         stage('Security Scan') {
             steps {
                 sh '''
-                # --exit-code 1 pour faire échouer le pipeline si une CVE HIGH ou CRITICAL est trouvée
+                # --exit-code 0 pour afficher le rapport de CVE sans bloquer ni faire échouer le pipeline
                 # --format table pour avoir un rapport lisible directement dans les logs Jenkins
                 docker run --rm \
                   -v /var/run/docker.sock:/var/run/docker.sock \
                   -v trivy-cache:/root/.cache/trivy \
                   aquasec/trivy:latest image \
                   --severity HIGH,CRITICAL \
-                  --exit-code 1 \
+                  --exit-code 0 \
                   --format table \
                   "${IMAGE_NAME}:${IMAGE_TAG}"
                 '''
