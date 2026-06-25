@@ -45,7 +45,7 @@ pipeline {
                 # Désactiver temporairement l'arrêt strict de bash
                 set +e
                 
-                # Lancer les tests en forçant le chemin relatif dans le rapport de couverture
+                # Lancer les tests
                 docker run \
                   -e CI=true \
                   --name test-runner \
@@ -61,6 +61,14 @@ pipeline {
                 
                 # Copier le rapport de couverture depuis le dossier de l'app du conteneur vers le workspace local
                 docker cp test-runner:/app/coverage.xml ./coverage.xml 2>/dev/null || true
+                
+                # RECRITURE CRITIQUE DES CHEMINS : On transforme les chemins absolus /app/src en chemins relatifs src/
+                # pour que SonarQube s'y retrouve dans le workspace Jenkins.
+                if [ -f ./coverage.xml ]; then
+                    echo "Correction des chemins dans coverage.xml..."
+                    sed -i 's|<source>/app</source>|<source>'"$WORKSPACE"'</source>|g' ./coverage.xml
+                    sed -i 's|filename="/app/|filename="|g' ./coverage.xml
+                fi
                 
                 # Nettoyer le conteneur de test
                 docker rm -f test-runner 2>/dev/null || true
@@ -109,8 +117,6 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    // Attend le résultat asynchrone du Quality Gate SonarQube
-                    // abortPipeline: true => bloque Push et Deploy si le gate échoue
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -120,8 +126,6 @@ pipeline {
         stage('Security Scan') {
             steps {
                 sh '''
-                # --exit-code 0 pour afficher le rapport de CVE sans bloquer ni faire échouer le pipeline
-                # --format table pour avoir un rapport lisible directement dans les logs Jenkins
                 docker run --rm \
                   -v /var/run/docker.sock:/var/run/docker.sock \
                   -v trivy-cache:/root/.cache/trivy \
@@ -166,9 +170,7 @@ pipeline {
             steps {
                 echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
                 sh '''
-                # Arrêter le staging précédent proprement
                 docker compose -f docker-compose.yml -p staging down 2>/dev/null || true
-                # Démarrer la nouvelle version
                 docker compose -f docker-compose.yml -p staging up -d
                 echo "Staging disponible sur http://localhost:8001"
                 '''
@@ -178,7 +180,6 @@ pipeline {
     
     post {
         always {
-            // Nettoyage des conteneurs après l'exécution
             sh 'docker compose down -v 2>/dev/null || true'
         }
         success {
