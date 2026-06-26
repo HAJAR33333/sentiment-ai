@@ -1,0 +1,18 @@
+[33mcommit 27f9d81c72fde5818890d1f1c33ca05711ead5ef[m
+Author: hajar rachach <rachachhajar@gmail.com>
+Date:   Wed Jun 24 15:04:46 2026 +0200
+
+    fix: downgrade httpx to 0.26.0 for fastapi compatibility
+
+[1mdiff --git a/requirements.txt b/requirements.txt[m
+[1mindex 9f6d2d9..8c0d415 100644[m
+[1m--- a/requirements.txt[m
+[1m+++ b/requirements.txt[m
+[36m@@ -3,4 +3,4 @@[m [muvicorn==0.27.0[m
+ pydantic==2.5.3[m
+ pytest==7.4.4[m
+ pytest-cov[m
+[31m-httpx[m
+\ No newline at end of file[m
+[32m+[m[32mhttpx==0.26.0[m
+\ No newline at end of file[m
